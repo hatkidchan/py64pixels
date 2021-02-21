@@ -20,16 +20,16 @@ PKT_STEP = '2a fffffda8 000000c9  2b fffffda8 000000c9'
 PKT_PLACE_BLOCK_PLAYER = '31 02 fffffda8 000000c9 01 30 7f'
 PKT_SPAWN = '20 7f 0a 6861746b69646368616e fffffda8 000000c9 68 7f'
 PKT_DESPAWN = '22 02'
-PKT_DATA_START = '11 07 fffffda8 000000c9 000000ff'
+PKT_DATA_START = '11 07 fffffda8 000000c9 0000000a'
 PKT_DATA_CHUNK = '12 000a 30313233343536373839'
 PKT_DATA_END = '13'
 PKT_DATA_FULL = PKT_DATA_START + PKT_DATA_CHUNK + PKT_DATA_END
-PKT_NICK = '26 0a 6861746b69646368616e'
+PKT_NICK = '26 02 0a 6861746b69646368616e'
 PKT_KICK = 'f5 0a 596f75206964696f7421'
 PKT_HEALTH = '91 04'
 PKT_PVP = '92 01'
 PKT_OP = '28 002a'
-PKT_PLACE_PUSHABLE_PLAYER = '32 02 fffffda8 000000c9 fe 00 30 7f'
+PKT_PLACE_PUSHABLE_PLAYER = '32 02 fffffda8 000000c9 ff 00 30 7f'
 
 
 class TestPacketsAutoDecoding(unittest.TestCase):
@@ -182,14 +182,100 @@ class TestPacketsAutoDecoding(unittest.TestCase):
             self.assertEqual(pkt.y, 201)
             self.assertTrue(pkt.on)
             self.assertEqual(pr.junk, b'')
-
-    def _test_base(self):
-        with PacketReader(bytes.fromhex(PKT_)) as pr:
+            
+    def test_place_block_player(self):
+        with PacketReader(bytes.fromhex(PKT_PLACE_BLOCK_PLAYER)) as pr:
             pkt = decoder.read_one(pr)
-            self.assertIsInstance(pkt, )
+            self.assertIsInstance(pkt, PlaceBlockPlayerPacket)
+            self.assertEqual(pkt.player_id, 2)
+            self.assertEqual(pkt.x, -600)
+            self.assertEqual(pkt.y, 201)
+            self.assertEqual(pkt.type, 1)
+            self.assertEqual(pkt.char, b'0')
+            self.assertEqual(pkt.color, 127)
+            self.assertEqual(pr.junk, b'')
+
+    def test_spawn_despawn(self):
+        with PacketReader(bytes.fromhex(PKT_SPAWN + PKT_DESPAWN)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, SpawnPacket)
+            self.assertEqual(pkt.player_id, 127)
+            self.assertEqual(pkt.name, 'hatkidchan')
+            self.assertEqual(pkt.x, -600)
+            self.assertEqual(pkt.y, 201)
+            self.assertEqual(pkt.char, b'h')
+            self.assertEqual(pkt.color, 127)
+            
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, DespawnPacket)
+            self.assertEqual(pkt.player_id, 2)
+            self.assertEqual(pr.junk, b'')
+
+    def test_data(self):
+        with PacketReader(bytes.fromhex(PKT_DATA_FULL)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, DataStartPacket)
+            self.assertEqual(pkt.chunk_type, 7)
+            self.assertEqual(pkt.chunk_x, -600)
+            self.assertEqual(pkt.chunk_y, 201)
+            self.assertEqual(pkt.data_length, 10)
+            
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, DataChunkPacket)
+            self.assertEqual(pkt.data, b'0123456789')
+            
+            self.assertIsInstance(decoder.read_one(pr), DataEndPacket)
             
             self.assertEqual(pr.junk, b'')
 
+    def test_nick(self):
+        with PacketReader(bytes.fromhex(PKT_NICK)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, PlayerNicknamePacket)
+            self.assertEqual(pkt.player_id, 2)
+            self.assertEqual(pkt.name, 'hatkidchan')
+            self.assertEqual(pr.junk, b'')
+
+    def test_kick(self):
+        with PacketReader(bytes.fromhex(PKT_KICK)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, KickPacket)
+            self.assertEqual(pkt.reason, 'You idiot!')
+            self.assertEqual(pr.junk, b'')
+
+    def test_health(self):
+        with PacketReader(bytes.fromhex(PKT_HEALTH)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, HealthPacket)
+            self.assertEqual(pkt.value, 4)
+            self.assertEqual(pr.junk, b'')
+
+    def test_pvp(self):
+        with PacketReader(bytes.fromhex(PKT_PVP)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, PVPPacket)
+            self.assertTrue(pkt.enabled)
+            self.assertEqual(pr.junk, b'')
+
+    def test_op(self):
+        with PacketReader(bytes.fromhex(PKT_OP)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, OperatorPacket)
+            self.assertTrue(pkt.status)
+            self.assertEqual(pr.junk, b'')
+
+    def test_place_pushable_player(self):
+        with PacketReader(bytes.fromhex(PKT_PLACE_PUSHABLE_PLAYER)) as pr:
+            pkt = decoder.read_one(pr)
+            self.assertIsInstance(pkt, PlacePushablePlayerPacket)
+            self.assertEqual(pkt.player_id, 2)
+            self.assertEqual(pkt.target_x, -600)
+            self.assertEqual(pkt.target_y, 201)
+            self.assertEqual(pkt.delta_x, -1)
+            self.assertEqual(pkt.delta_y, 0)
+            self.assertEqual(pkt.char, b'0')
+            self.assertEqual(pkt.color, 127)
+            self.assertEqual(pr.junk, b'')
 
 
 class TestPacketReader(unittest.TestCase):

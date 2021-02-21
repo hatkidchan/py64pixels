@@ -172,7 +172,7 @@ class PlaceBlockPlayerPacket(BasePacket):
     x: c_int32
     y: c_int32
     type: c_int8
-    char: c_byte
+    char: c_char
     color: c_uint8
     
     
@@ -183,7 +183,7 @@ class SpawnPacket(BasePacket):
     name: str8
     x: c_int32
     y: c_int32
-    char: c_byte
+    char: c_char
     color: c_uint8
 
 
@@ -252,7 +252,7 @@ class PlacePushablePlayerPacket(BasePacket):
     target_y: c_int32
     delta_x: c_int8
     delta_y: c_int8
-    char: c_byte
+    char: c_char
     color: c_uint8
 
 
